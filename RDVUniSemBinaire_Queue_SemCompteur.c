@@ -163,7 +163,7 @@ int main (void)
 		TASK_STK_SIZE / 2, TASK_STK_SIZE, 1, 0, (void*)0, (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR), &os_err);
 	OSTaskCreate(&TaskDevFifoTCB, "TaskDevFifo", TaskDevFifo, (void*)0, TaskDevFifoPrio, &TaskDevFifoStk[0u],
 		TASK_STK_SIZE / 2, TASK_STK_SIZE, 1, 0, (void*)0, (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR), &os_err);
-    OSTaskCreate(&StartupTaskTCB,"Main Task", StartupTask, (void *) 0, UCOS_START_TASK_PRIO,
+    OSTaskCreate(&StartupTaskTCB,"Main Task", , (void *) 0, UCOS_START_TASK_PRIO,
                  &StartupTaskStk[0], 0, UCOS_START_TASK_STACK_SIZE,
                  0, 0, DEF_NULL, (OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR), &os_err);
 
@@ -406,13 +406,19 @@ void StartupTask (void *p_arg)
 
     UCOS_Print("Programme initialise - \r\n");
     UCOS_Printf("Frequence courante du tick d horloge - %d\r\n", OS_CFG_TICK_RATE_HZ);
-
+    
+    // At this point, the other tasks could already have started their execution 
+    // But they will be blocked by the OSFlagPend call 
+    // So, here the others task get a call that allow them to unblock 
     OSFlagPost(&FlagGroup, All_Tasks , OS_OPT_POST_FLAG_SET, &err);
 
+    // This tasks is delayed by 10s, so the others tasks can be executed during this time
     OSTimeDlyHMSM(0,0,10,0, OS_OPT_TIME_DLY, &err);     // On laisse ex�cuter 10 sec.
 
     UCOS_Print("Prepare to shutdown System - \r\n");
 
+    // We finish block again the other tasks by clearing the flags, so they will 
+    // block again in the while loop at the OSFlagPend call
     OSFlagPost(&FlagGroup, All_Tasks, OS_OPT_POST_FLAG_CLR, &err);
 
     OSTaskSuspend((OS_TCB *)0,&err);						 // On pourrait aussi faire delete des taches
