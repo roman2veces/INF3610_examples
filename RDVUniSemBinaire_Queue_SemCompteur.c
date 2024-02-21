@@ -316,6 +316,7 @@ void  TaskDevFifo (void *data)
 		xil_printf("\Debut du stream !\n");
  		for(i=0; i<255; i++) {
  	        OSTimeDly(1, OS_OPT_TIME_PERIODIC, &err);
+			// Because this function simulates an ISR, this OSSemPend call must not block (OS_OPT_PEND_NON_BLOCKING)
 			OSSemPend(&Irq1, 0, OS_OPT_PEND_NON_BLOCKING, &ts, &err);
 			reg = value++;
 			OSSemPost(&Irq1, OS_OPT_POST_1 + OS_OPT_POST_NO_SCHED, &err);
