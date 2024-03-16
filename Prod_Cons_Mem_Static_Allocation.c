@@ -183,6 +183,9 @@ int main (void)
 
 	OSFlagCreate(&FlagGroup, "Flag Group", (OS_FLAGS)0, &os_err);
 	
+    // Create the memory for allocation
+    // BlockMem is like a control pointer to the memory, but Tab_Block is the real pointer were the data will be allocate
+    // We will allocate initialy 1000 blocks of size: sizeof(CPU_INT32U)
 	OSMemCreate(&BLockMem, "BLockMem", &Tab_Block[0], 1000, sizeof(CPU_INT32U), &os_err);
 
     OSStart(&os_err);
@@ -286,7 +289,11 @@ void  TaskProdFifo (void *data)
 				add =0;
    		OSMutexPost(&Mutex, OS_OPT_POST_NONE, &err);                  //Release semaphore
 		OSSemPost(&NbItems, OS_OPT_POST_1, &err);
-//		free(msg);
+        // If we were using malloc, we would use free here to deallocate: 
+        // free(msg); 
+        
+        // But instead we use OSMemPut that allows us to put back the memory block that we allocated
+        // we pass de pointer to that block (msg) 
 		OSMemPut(&BLockMem, (void *)msg, &err);
 	}
 }
@@ -304,8 +311,10 @@ void  TaskDrivFifo (void *data)
 	while (1) {
 		OSFlagPend(&FlagGroup, All_Tasks, 0, OS_OPT_PEND_FLAG_SET_ALL + OS_OPT_PEND_BLOCKING, &ts, &err);
 		OSFlagPend(&FlagGroup, New_Sample_Event, 0, OS_OPT_PEND_FLAG_SET_ALL + OS_OPT_PEND_BLOCKING + OS_OPT_PEND_FLAG_CONSUME, &ts, &err);
-//		Msg *msg = malloc(sizeof(msg));
-		msg = (CPU_INT32U *)OSMemGet(&BLockMem, &err);
+        
+        // Msg *msg = malloc(sizeof(msg));
+		//  Here instead of malloc we use OSMemGet to allocate a block, so we get the pointer to the block 
+        msg = (CPU_INT32U *)OSMemGet(&BLockMem, &err);
 
 	    if(msg == NULL) xil_printf("\nAttention: NULL Pointer pour OSGetMem");
 		
@@ -437,7 +446,3 @@ void StartupTask (void *p_arg)
     OSTaskSuspend((OS_TCB *)0,&err);      // On pourrait aussi faire delete des taches
 
 }
-
-
-
-
